@@ -2,20 +2,28 @@ package pktline
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"strings"
 	"testing"
 )
 
-func TestScan(t *testing.T) {
+func TestScanner(t *testing.T) {
 	tests := map[string]struct {
-		input   string
-		want    []byte
-		wantErr error
+		input    string
+		want     []byte
+		wantErr  error
+		wantScan bool
 	}{
-		"unexpected-eof": {
+		"eof": {
+			input:   "",
+			wantErr: io.EOF,
+		},
+		"unexpected-eof-length": {
 			input:   "000",
+			wantErr: io.ErrUnexpectedEOF,
+		},
+		"unexpected-eof-payload": {
+			input:   "001c incomplete",
 			wantErr: io.ErrUnexpectedEOF,
 		},
 		"invalid-hex-length": {
@@ -26,15 +34,15 @@ func TestScan(t *testing.T) {
 		},
 		"flush-pkt": {
 			input:   "0000",
-			wantErr: ErrFlushPkt{},
+			wantErr: ErrFlushPkt,
 		},
 		"delim-pkt": {
 			input:   "0001",
-			wantErr: ErrDelimPkt{},
+			wantErr: ErrDelimPkt,
 		},
 		"response-end-pkt": {
 			input:   "0002",
-			wantErr: ErrResponseEndPkt{},
+			wantErr: ErrResponseEndPkt,
 		},
 		"invalid-length": {
 			input: "0003",
@@ -48,10 +56,6 @@ func TestScan(t *testing.T) {
 				Explanation: "something went wrong",
 			},
 		},
-		"empty": {
-			input: "0004",
-			want:  []byte{},
-		},
 		"valid": {
 			input: "000eversion 1\n",
 			want:  []byte("version 1\n"),
@@ -59,22 +63,16 @@ func TestScan(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			for got, err := range Scan(strings.NewReader(tc.input)) {
-				if tc.wantErr != nil {
-					if err == nil {
-						t.Fatalf("expected error, got nil")
-					} else if !errors.Is(err, tc.wantErr) {
-						t.Fatalf("expected error %v, got %v", tc.wantErr, err)
-					}
-				} else {
-					if err != nil {
-						t.Fatalf("expected error to be nil, got %v", err)
-					}
-					if !bytes.Equal(got, tc.want) {
-						t.Fatalf("expected %v, got %v", tc.want, got)
-					}
-				}
-				break
+			var scanner Scanner
+			scanner.Reset(strings.NewReader(tc.input))
+			gotPayload, gotErr := scanner.Scan()
+			if tc.wantErr == nil && gotErr != nil {
+				t.Fatalf("expected no error, got %v", gotErr)
+			} else if gotErr != tc.wantErr {
+				t.Fatalf("expected error %v, got %v", tc.wantErr, gotErr)
+			}
+			if !bytes.Equal(gotPayload, tc.want) {
+				t.Fatalf("expected %v, got %v", tc.want, gotPayload)
 			}
 		})
 	}

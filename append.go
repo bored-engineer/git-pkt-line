@@ -1,13 +1,8 @@
 package pktline
 
-// byteToASCIIHex converts a byte to its ASCII hex representation
-func byteToASCIIHex(n byte) byte {
-	if n < 10 {
-		return '0' + n
-	}
-
-	return 'a' - 10 + n
-}
+import (
+	"fmt"
+)
 
 // 0000: Flush Packet (flush-pkt) - indicates the end of a message
 func AppendFlushPkt(b []byte) []byte {
@@ -24,21 +19,26 @@ func AppendResponseEndPkt(b []byte) []byte {
 	return append(b, '0', '0', '0', '2')
 }
 
-// AppendBytes appends the given bytes to the slice adding a length prefix to the front
-func AppendBytes(b []byte, data []byte) []byte {
-	sz := len(data) + 4
-	return append(
-		append(b,
-			byteToASCIIHex(byte(sz&0xf000>>12)),
-			byteToASCIIHex(byte(sz&0x0f00>>8)),
-			byteToASCIIHex(byte(sz&0x00f0>>4)),
-			byteToASCIIHex(byte(sz&0x000f)),
-		),
-		data...,
+// AppendLength appends the given lengthx to the slice as ASCII hex characters
+func AppendLength(b []byte, sz int) []byte {
+	sz += 4
+	if sz > 65520 {
+		panic(fmt.Errorf("length (%d) overflows maximum permitted value (65520)", sz))
+	}
+	return append(b,
+		hex(byte(sz&0xf000>>12)),
+		hex(byte(sz&0x0f00>>8)),
+		hex(byte(sz&0x00f0>>4)),
+		hex(byte(sz&0x000f)),
 	)
 }
 
-// AppendString is an alias for AppendBytes but takes a string type
+// AppendBytes appends the given bytes to the slice, prepending the pkt-len
+func AppendBytes(b []byte, data []byte) []byte {
+	return append(AppendLength(b, len(data)), data...)
+}
+
+// AppendBytes appends the given string to the slice, prepending the pkt-len
 func AppendString(b []byte, data string) []byte {
-	return AppendBytes(b, []byte(data))
+	return append(AppendLength(b, len(data)), data...)
 }

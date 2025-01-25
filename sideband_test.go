@@ -25,7 +25,7 @@ func TestSideband(t *testing.T) {
 		},
 		"progress": {
 			input:   "\x02progress",
-			want:    SideBandPackData,
+			want:    SideBandProgress,
 			wantBuf: "progress",
 		},
 		"fatal": {

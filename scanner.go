@@ -50,7 +50,7 @@ type Scanner struct {
 func (s *Scanner) Reset(r io.Reader) { s.r = r }
 
 // Scan advances the Scanner to the next pkt-line
-func (s *Scanner) Scan() ([]byte, error) {
+func (s *Scanner) Scan() (line []byte, err error) {
 	// Read the length of the next pkt-line
 	if n, err := io.ReadFull(s.r, s.buf[0:4]); err != nil {
 		if n == 0 && err == io.ErrUnexpectedEOF {

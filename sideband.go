@@ -13,21 +13,21 @@ const (
 	SideBandFatal SideBandCode = 3
 )
 
-// SideBand decodes a sideband message from the given data.
-func SideBand(data []byte) (SideBandCode, []byte) {
-	if len(data) < 1 {
-		return SideBandInvalid, data
+// SideBand decodes a sideband message from the given pkt-line.
+func SideBand(line []byte) (SideBandCode, []byte) {
+	if len(line) < 1 {
+		return SideBandInvalid, line
 	}
-	code := SideBandCode(data[0])
+	code := SideBandCode(line[0])
 	switch code {
 	case SideBandPackData, SideBandProgress, SideBandFatal:
-		return code, data[1:]
+		return code, line[1:]
 	default:
-		return SideBandInvalid, data
+		return SideBandInvalid, line
 	}
 }
 
-// AppendSideBand appends a sideband message to the given data.
-func AppendSideBand(code SideBandCode, data []byte) []byte {
-	return append([]byte{byte(code)}, data...)
+// AppendSideBand prepends a sideband code to the given pkt-line.
+func AppendSideBand(code SideBandCode, line []byte) []byte {
+	return append([]byte{byte(code)}, line...)
 }

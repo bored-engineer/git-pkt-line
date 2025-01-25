@@ -50,6 +50,12 @@ func TestScanner(t *testing.T) {
 				Len: [4]byte{'0', '0', '0', '3'},
 			},
 		},
+		"large-length": {
+			input: "ffff",
+			wantErr: ErrInvalidLen{
+				Len: [4]byte{'f', 'f', 'f', 'f'},
+			},
+		},
 		"err-line": {
 			input: "001cERR something went wrong",
 			wantErr: ErrErrorLine{
